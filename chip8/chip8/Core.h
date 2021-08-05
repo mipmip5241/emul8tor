@@ -1,5 +1,6 @@
 #pragma once
 #include <array>
+#include <unordered_map>
 
 class Core
 {
@@ -13,6 +14,9 @@ public:
 	void set_opcode(int val);
 
 private:
+
+	typedef void (Core::*opcode_handler)(void);
+
 	static constexpr int MEMORY_SIZE = 4096;
 	static constexpr int GP_REGISTERS_SIZE = 16;
 	static constexpr int STACK_SIZE = 16;
@@ -27,25 +31,34 @@ private:
 	static constexpr int EXTRACT_Y_REGISTER = 4;
 	static constexpr int KEY_SIZE = 16;
 
-	std::array<unsigned char, MEMORY_SIZE> memory;
-	std::array<std::array<unsigned char, GRAPHICS_HEIGHT>, GRAPHICS_WIDTH> gfx;
+	std::array<unsigned char, MEMORY_SIZE> _memory;
+	std::array<std::array<unsigned char, GRAPHICS_HEIGHT>, GRAPHICS_WIDTH> _gfx;
 
-	std::array<unsigned char, GP_REGISTERS_SIZE> gp_registers;
-	unsigned short index_register;
-	unsigned short pc;
+	std::array<unsigned char, GP_REGISTERS_SIZE> _gp_registers;
+	unsigned short _index_register;
+	unsigned short _pc;
 
-	unsigned short curr_opcode;
+	unsigned short _curr_opcode;
 
-	unsigned char delay_timer;
-	unsigned char sound_timer;
+	unsigned char _delay_timer;
+	unsigned char _sound_timer;
 
-	std::array<unsigned short, STACK_SIZE> stack;
-	unsigned short sp;
+	std::array<unsigned short, STACK_SIZE> _stack;
+	unsigned short _sp;
 
-	std::array<unsigned char, KEY_SIZE> keys;
+	std::array<bool, KEY_SIZE> _keys;
+
+	std::unordered_map<unsigned short, opcode_handler> _opcode_handlers;
 
 	void load_fontset();
 	void update_timers();
+	void setup_opcode_umap();
+
+	void inst_0_classification();
+	void inst_8_classification();
+	void inst_E_classification();
+	void inst_F_classification();
+
 
 	// Opcode handlers
 	void inst_0NNN(); 
