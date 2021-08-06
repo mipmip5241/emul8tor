@@ -5,12 +5,11 @@ Core::Core()
 	_gp_registers(), _index_register(0), _pc(PC_START),
 	_curr_opcode(0),
 	_delay_timer(TIMER_START), _sound_timer(TIMER_START),
-	_stack(), _sp(0), _keys(), _opcode_handlers()
+	_stack(), _sp(0), input(), _opcode_handlers()
 {
 	this->_memory.fill(0);
 	this->inst_00E0();
 	this->_gp_registers.fill(0);
-	this->_keys.fill(false);
 
 	this->load_fontset();
 
@@ -394,7 +393,7 @@ void Core::inst_DXYN()
 
 void Core::inst_EX9E()
 {
-	if (this->_keys[this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER]] != 0)
+	if ((this->input.get_key_states()).at(((sf::Keyboard::Key)(this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER]))))
 	{
 		this->_pc += NEXT_INST;
 	}
@@ -402,7 +401,7 @@ void Core::inst_EX9E()
 
 void Core::inst_EXA1()
 {
-	if (this->_keys[this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER]] == 0)
+	if (!((this->input.get_key_states()).at(((sf::Keyboard::Key)(this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER])))))
 	{
 		this->_pc += NEXT_INST;
 	}
@@ -415,11 +414,11 @@ void Core::inst_FX07()
 
 void Core::inst_FX0A()
 {
-	for (int i = 0; i < KEY_SIZE; i++)
+	for (auto& key : this->input.get_key_states())
 	{
-		if (this->_keys[i])
+		if (key.second)
 		{
-			this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER] = i;
+			this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER] = key.first;
 			break;
 		}
 	}

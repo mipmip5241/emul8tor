@@ -1,6 +1,6 @@
 #pragma once
 #include <array>
-#include <unordered_map>
+#include "InputHandler.h"
 
 class Core
 {
@@ -29,7 +29,6 @@ private:
 	static constexpr int CARRY_FLAG = 15;
 	static constexpr int EXTRACT_X_REGISTER = 8;
 	static constexpr int EXTRACT_Y_REGISTER = 4;
-	static constexpr int KEY_SIZE = 16;
 
 	std::array<unsigned char, MEMORY_SIZE> _memory;
 	std::array<std::array<unsigned char, GRAPHICS_HEIGHT>, GRAPHICS_WIDTH> _gfx;
@@ -46,7 +45,7 @@ private:
 	std::array<unsigned short, STACK_SIZE> _stack;
 	unsigned short _sp;
 
-	std::array<bool, KEY_SIZE> _keys;
+	InputHandler input;
 
 	std::unordered_map<unsigned short, opcode_handler> _opcode_handlers;
 
