@@ -412,6 +412,31 @@ void Core::inst_CXNN()
 
 void Core::inst_DXYN()
 {
+	constexpr int PIXEL_WIDTH = 8;
+
+	unsigned short x = this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER];
+  	unsigned short y = this->_gp_registers[(this->_curr_opcode & 0x00F0) >> EXTRACT_Y_REGISTER];
+  	unsigned short height = this->_curr_opcode & 0x000F;
+	unsigned short pixel = 0;
+	this->_gp_registers[CARRY_FLAG] = 0;
+
+	for (int row = 0; row < height; row++)
+	{
+		pixel = this->_memory[this->_index_register + row];
+		for (int col = 0; col < PIXEL_WIDTH; col++)
+		{
+			if((pixel & (0x80 >> col)) != 0)
+			{
+				if(this->_gfx[x + row][y + col] == 1)
+				{
+					this->_gp_registers[CARRY_FLAG] = 1;
+				}
+				this->_gfx[x + row][y + col] ^= 1;
+			}
+		}
+		
+	}
+	
 }
 
 
@@ -472,7 +497,7 @@ void Core::inst_FX29()
 
 void Core::inst_FX33()
 {
-	unsigned char val = this->_gp_registers[this->_curr_opcode & 0xF00];
+	unsigned char val = this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER];
 	this->_memory[this->_index_register] = this->dec_to_bcd(val/100);
 	this->_memory[this->_index_register + 1] = this->dec_to_bcd((val/10) % 10);
 	this->_memory[this->_index_register + 2] = this->dec_to_bcd(val% 10);
