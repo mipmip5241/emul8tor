@@ -1,16 +1,23 @@
 #pragma once
 #include <array>
 #include "InputHandler.h"
+#include "Screen.h"
 
 class Core
 {
 public:
+
+	static constexpr int GRAPHICS_HEIGHT = 64;
+	static constexpr int GRAPHICS_WIDTH = 32;
+
 	Core();
 	~Core() = default;
 
 	bool load_game(std::string path);
 	
 	void emulate_cycle();
+	void draw();
+
 	//test
 	void set_opcode(int val);
 
@@ -22,8 +29,7 @@ private:
 	static constexpr int GP_REGISTERS_SIZE = 16;
 	static constexpr int STACK_SIZE = 16;
 	static constexpr int PC_START = 0x200;
-	static constexpr int GRAPHICS_HEIGHT = 64;
-	static constexpr int GRAPHICS_WIDTH = 32;
+
 	static constexpr int FONT_SET_SIZE = 80;
 	static constexpr int TIMER_START = 60;
 	static constexpr int NEXT_INST = 2;
@@ -46,9 +52,12 @@ private:
 	std::array<unsigned short, STACK_SIZE> _stack;
 	unsigned short _sp;
 
-	InputHandler input;
+	InputHandler _input;
+	Screen _screen;
 
 	std::unordered_map<unsigned short, opcode_handler> _opcode_handlers;
+
+	bool _draw_flag;
 
 	void load_fontset();
 	void update_timers();

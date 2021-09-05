@@ -1,16 +1,17 @@
+#pragma once
+#include "Core.h"
 #include "SFML/Graphics.hpp"
 
 class Screen
 {
 private:
-    static constexpr int WINDOW_WIDTH = 320;
-    static constexpr int WINDOW_HEIGHT = 640;
-    
     sf::RenderWindow _window;
 
 public:
     Screen();
-    ~Screen() = default;
+    ~Screen();
+
+    void draw(std::array<std::array<unsigned char, Core::GRAPHICS_HEIGHT>, Core::GRAPHICS_WIDTH>& gfx);
 };
 
 

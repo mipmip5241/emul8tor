@@ -6,7 +6,7 @@ Core::Core()
 	_gp_registers(), _index_register(0), _pc(PC_START),
 	_curr_opcode(0),
 	_delay_timer(TIMER_START), _sound_timer(TIMER_START),
-	_stack(), _sp(0), input(), _opcode_handlers()
+	_stack(), _sp(0), _input(), _screen(), _opcode_handlers(), _draw_flag(false)
 {
 	this->_memory.fill(0);
 	this->inst_00E0();
@@ -30,6 +30,12 @@ void Core::emulate_cycle()
 	this->update_timers();
 }
 
+void Core::draw()
+{
+	if(this->_draw_flag)
+		this->_screen.draw(this->_gfx);
+}
+
 bool Core::load_game(std::string path)
 {
 	constexpr int MEM_START = 0x200;
@@ -43,8 +49,10 @@ bool Core::load_game(std::string path)
 			this->_memory[MEM_START + i] = byte;
 			i++;
 		}
+		rom.close();
 		return true;
 	}
+	rom.close();
 	return false;
 }
 
@@ -107,6 +115,7 @@ void Core::setup_opcode_umap()
 	this->_opcode_handlers[0x2] = &Core::inst_2NNN;
 	this->_opcode_handlers[0x3] = &Core::inst_3XNN;
 	this->_opcode_handlers[0x4] = &Core::inst_4XNN;
+	this->_opcode_handlers[0x5] = &Core::inst_5XY0;
 	this->_opcode_handlers[0x5] = &Core::inst_5XY0;
 	this->_opcode_handlers[0x6] = &Core::inst_6XNN;
 	this->_opcode_handlers[0x7] = &Core::inst_7XNN;
@@ -436,13 +445,15 @@ void Core::inst_DXYN()
 		}
 		
 	}
+
+	this->_draw_flag = true;
 	
 }
 
 
 void Core::inst_EX9E()
 {
-	if ((this->input.get_key_states()).at(((sf::Keyboard::Key)(this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER]))))
+	if ((this->_input.get_key_states()).at(((sf::Keyboard::Key)(this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER]))))
 	{
 		this->_pc += NEXT_INST;
 	}
@@ -450,7 +461,7 @@ void Core::inst_EX9E()
 
 void Core::inst_EXA1()
 {
-	if (!((this->input.get_key_states()).at(((sf::Keyboard::Key)(this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER])))))
+	if (!((this->_input.get_key_states()).at(((sf::Keyboard::Key)(this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER])))))
 	{
 		this->_pc += NEXT_INST;
 	}
@@ -463,7 +474,7 @@ void Core::inst_FX07()
 
 void Core::inst_FX0A()
 {
-	for (auto& key : this->input.get_key_states())
+	for (auto& key : this->_input.get_key_states())
 	{
 		if (key.second)
 		{
