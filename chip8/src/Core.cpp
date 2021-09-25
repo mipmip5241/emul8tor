@@ -1,12 +1,13 @@
-#include "../include//Core.h"
+#include "../include/Core.h"
 #include <fstream>
-
+#include <SFML/Graphics/Image.hpp>
+#include <iostream>
 Core::Core()
 	: _memory(), _gfx(),
 	_gp_registers(), _index_register(0), _pc(PC_START),
 	_curr_opcode(0),
 	_delay_timer(TIMER_START), _sound_timer(TIMER_START),
-	_stack(), _sp(0), _input(), _screen(), _opcode_handlers(), _draw_flag(false)
+	_stack(), _sp(0), _input(), _opcode_handlers(),_window(sf::VideoMode(640, 320), "chip"), _draw_flag(false)
 {
 	this->_memory.fill(0);
 	this->inst_00E0();
@@ -17,23 +18,62 @@ Core::Core()
 	this->setup_opcode_umap();
 }
 
+
 void Core::emulate_cycle()
 {
 	constexpr int MERGE_OPCODE = 8;
 
-	//this->curr_opcode = this->memory[this->pc] << MERGE_OPCODE | this->memory[this->pc + 1];
-
-	opcode_handler& handler = this->_opcode_handlers[(this->_curr_opcode & 0xF000)];
+	this->_curr_opcode = this->_memory[this->_pc] << MERGE_OPCODE | this->_memory[this->_pc + 1];
+	std::cout << std::hex << this->_curr_opcode << std::endl;
+	opcode_handler handler = this->_opcode_handlers[(this->_curr_opcode & 0xF000) >> 12];
 	(this->*handler)();
 
 	this->_pc += NEXT_INST;
 	this->update_timers();
 }
 
+void Core::update_keys()
+{
+	sf::Event event;
+    while (this->_window.pollEvent(event))
+    {
+		switch (event.type)
+		{
+		case sf::Event::Closed:
+			this->_window.close();
+			break;
+		case sf::Event::KeyPressed:
+			this->_input.key_press(event.key.code);
+			break;
+		case sf::Event::KeyReleased:
+			this->_input.key_release(event.key.code);
+			break;
+		default:
+			break;
+		}
+    }
+}
+
 void Core::draw()
 {
 	if(this->_draw_flag)
-		this->_screen.draw(this->_gfx);
+	{
+		this->_window.clear(sf::Color::Black);
+		for(int i = 0 ; i < Core::GRAPHICS_HEIGHT; i++)
+		{
+			for(int j = 0; j < Core::GRAPHICS_WIDTH; j++)
+			{
+				if(this->_gfx[i][j] != 0)
+				{
+					sf::RectangleShape rectangle(sf::Vector2f(10.f, 10.f));
+					rectangle.setPosition(sf::Vector2f(i*10, j*10));
+					this->_window.draw(rectangle);
+				}
+			}
+		}
+
+		this->_window.display();
+	}
 }
 
 bool Core::load_game(std::string path)
@@ -54,11 +94,6 @@ bool Core::load_game(std::string path)
 	}
 	rom.close();
 	return false;
-}
-
-void Core::set_opcode(int val)
-{
-	this->_curr_opcode = val;
 }
 
 unsigned char Core::dec_to_bcd(unsigned char val)
@@ -115,7 +150,6 @@ void Core::setup_opcode_umap()
 	this->_opcode_handlers[0x2] = &Core::inst_2NNN;
 	this->_opcode_handlers[0x3] = &Core::inst_3XNN;
 	this->_opcode_handlers[0x4] = &Core::inst_4XNN;
-	this->_opcode_handlers[0x5] = &Core::inst_5XY0;
 	this->_opcode_handlers[0x5] = &Core::inst_5XY0;
 	this->_opcode_handlers[0x6] = &Core::inst_6XNN;
 	this->_opcode_handlers[0x7] = &Core::inst_7XNN;
@@ -262,7 +296,7 @@ void Core::inst_0NNN()
 
 void Core::inst_00E0()
 {
-	for (int i = 0; i < GRAPHICS_WIDTH; i++)
+	for (int i = 0; i < GRAPHICS_HEIGHT; i++)
 	{
 		this->_gfx[i].fill(0);
 	}

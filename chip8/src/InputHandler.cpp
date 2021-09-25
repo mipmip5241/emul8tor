@@ -1,4 +1,4 @@
-#include "../include//InputHandler.h"
+#include "../include/InputHandler.h"
 
 InputHandler::InputHandler() : _keys_state()
 {
@@ -20,12 +20,14 @@ InputHandler::InputHandler() : _keys_state()
 	this->_keys_state[sf::Keyboard::V] = false;
 }
 
-void InputHandler::update_keys_states()
+void InputHandler::key_press(sf::Keyboard::Key key_pressed)
 {
-	for (auto& key : this->_keys_state)
-	{
-		key.second = sf::Keyboard::isKeyPressed(key.first);
-	}
+	this->_keys_state[key_pressed] = true;
+}
+
+void InputHandler::key_release(sf::Keyboard::Key key_released)
+{
+	this->_keys_state[key_released] = false;
 }
 
 const std::unordered_map<sf::Keyboard::Key, bool> InputHandler::get_key_states() const

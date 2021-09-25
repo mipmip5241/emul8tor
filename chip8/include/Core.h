@@ -1,7 +1,7 @@
 #pragma once
 #include <array>
 #include "InputHandler.h"
-#include "Screen.h"
+#include <SFML/Graphics.hpp>
 
 class Core
 {
@@ -17,10 +17,7 @@ public:
 	
 	void emulate_cycle();
 	void draw();
-
-	//test
-	void set_opcode(int val);
-
+	void update_keys();
 private:
 
 	typedef void (Core::*opcode_handler)(void);
@@ -38,7 +35,7 @@ private:
 	static constexpr int EXTRACT_Y_REGISTER = 4;
 
 	std::array<unsigned char, MEMORY_SIZE> _memory;
-	std::array<std::array<unsigned char, GRAPHICS_HEIGHT>, GRAPHICS_WIDTH> _gfx;
+	std::array<std::array<unsigned char, GRAPHICS_WIDTH>, GRAPHICS_HEIGHT> _gfx;
 
 	std::array<unsigned char, GP_REGISTERS_SIZE> _gp_registers;
 	unsigned short _index_register;
@@ -53,10 +50,11 @@ private:
 	unsigned short _sp;
 
 	InputHandler _input;
-	Screen _screen;
 
 	std::unordered_map<unsigned short, opcode_handler> _opcode_handlers;
 
+
+	sf::RenderWindow _window;
 	bool _draw_flag;
 
 	void load_fontset();
