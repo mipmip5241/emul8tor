@@ -2,20 +2,21 @@
 #include <array>
 #include "InputHandler.h"
 #include <SFML/Graphics.hpp>
+#include <unordered_map>
 
 class Core
 {
 public:
 
-	static constexpr int GRAPHICS_HEIGHT = 64;
-	static constexpr int GRAPHICS_WIDTH = 32;
+	static constexpr int GRAPHICS_HEIGHT = 32;
+	static constexpr int GRAPHICS_WIDTH = 64;
 
 	Core();
 	~Core() = default;
 
 	bool load_game(std::string path);
 	
-	void emulate_cycle();
+	bool emulate_cycle();
 	void draw();
 	void update_keys();
 private:
@@ -60,8 +61,7 @@ private:
 	void load_fontset();
 	void update_timers();
 	void setup_opcode_umap();
-	unsigned char dec_to_bcd(unsigned char val);
-	
+
 	void inst_0_classification();
 	void inst_8_classification();
 	void inst_E_classification();

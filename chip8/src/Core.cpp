@@ -19,17 +19,18 @@ Core::Core()
 }
 
 
-void Core::emulate_cycle()
+bool Core::emulate_cycle()
 {
 	constexpr int MERGE_OPCODE = 8;
-
+	this->_draw_flag = false;
 	this->_curr_opcode = this->_memory[this->_pc] << MERGE_OPCODE | this->_memory[this->_pc + 1];
 	std::cout << std::hex << this->_curr_opcode << std::endl;
 	opcode_handler handler = this->_opcode_handlers[(this->_curr_opcode & 0xF000) >> 12];
 	(this->*handler)();
 
-	this->_pc += NEXT_INST;
 	this->update_timers();
+
+	return this->_window.isOpen();
 }
 
 void Core::update_keys()
@@ -56,7 +57,7 @@ void Core::update_keys()
 
 void Core::draw()
 {
-	if(this->_draw_flag)
+	if(true)
 	{
 		this->_window.clear(sf::Color::Black);
 		for(int i = 0 ; i < Core::GRAPHICS_HEIGHT; i++)
@@ -66,7 +67,8 @@ void Core::draw()
 				if(this->_gfx[i][j] != 0)
 				{
 					sf::RectangleShape rectangle(sf::Vector2f(10.f, 10.f));
-					rectangle.setPosition(sf::Vector2f(i*10, j*10));
+					rectangle.setFillColor(sf::Color::White);
+					rectangle.setPosition(sf::Vector2f(j*10, i*10));
 					this->_window.draw(rectangle);
 				}
 			}
@@ -94,11 +96,6 @@ bool Core::load_game(std::string path)
 	}
 	rom.close();
 	return false;
-}
-
-unsigned char Core::dec_to_bcd(unsigned char val)
-{
-	return (((val/10)<<4) + (val%10));
 }
 
 void Core::load_fontset()
@@ -137,7 +134,7 @@ void Core::update_timers()
 	{
 		if (_sound_timer == 1)
 		{
-			// Make sound
+			std::cout << '\a' << "beep!!" << std::endl;
 		}
 		this->_sound_timer--;
 	}
@@ -300,12 +297,21 @@ void Core::inst_00E0()
 	{
 		this->_gfx[i].fill(0);
 	}
+	this->_pc += NEXT_INST;
 }
 
 void Core::inst_00EE()
 {
-	this->_pc = this->_stack[this->_sp];
-	this->_sp--;
+	if(this->_sp > 0)
+	{
+		this->_sp--;
+		this->_pc = this->_stack[this->_sp];
+		this->_pc += NEXT_INST;
+	}
+	else
+	{
+		std::cout << "00EE error" << std::endl;
+	}
 }
 
 void Core::inst_1NNN()
@@ -315,9 +321,16 @@ void Core::inst_1NNN()
 
 void Core::inst_2NNN()
 {
-	this->_stack[this->_sp] = this->_pc;
-	this->_sp++;
-	this->inst_0NNN();
+	if(this->_sp < (Core::STACK_SIZE - 1))
+	{
+		this->_stack[this->_sp] = this->_pc;
+		this->_sp++;
+		this->inst_0NNN();
+	}
+	else
+	{
+		std::cout << "2NNN error" << std::endl;
+	}
 }
 
 void Core::inst_3XNN()
@@ -326,6 +339,7 @@ void Core::inst_3XNN()
 	{
 		this->_pc += NEXT_INST;
 	}
+	this->_pc += NEXT_INST;
 }
 
 void Core::inst_4XNN()
@@ -334,6 +348,7 @@ void Core::inst_4XNN()
 	{
 		this->_pc += NEXT_INST;
 	}
+	this->_pc += NEXT_INST;
 }
 
 void Core::inst_5XY0()
@@ -342,39 +357,46 @@ void Core::inst_5XY0()
 	{
 		this->_pc += NEXT_INST;
 	}
+	this->_pc += NEXT_INST;
 }
 
 void Core::inst_6XNN()
 {
 	this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER] = (this->_curr_opcode & 0x00FF);
+	this->_pc += NEXT_INST;
 }
 
 void Core::inst_7XNN()
 {
 	this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER] += (this->_curr_opcode & 0x00FF);
+	this->_pc += NEXT_INST;
 }
 
 void Core::inst_8XY0()
 {
 	this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER] = this->_gp_registers[(this->_curr_opcode & 0x00F0) >> EXTRACT_Y_REGISTER];
+	this->_pc += NEXT_INST;
 }
 
 void Core::inst_8XY1()
 {
 	this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER] = 
 		(this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER] | this->_gp_registers[(this->_curr_opcode & 0x00F0) >> EXTRACT_Y_REGISTER]);
+	this->_pc += NEXT_INST;
 }
 
 void Core::inst_8XY2()
 {
 	this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER] = 
 		(this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER] & this->_gp_registers[(this->_curr_opcode & 0x00F0) >> EXTRACT_Y_REGISTER]);
+	this->_pc += NEXT_INST;
 }
 
 void Core::inst_8XY3()
 {
 	this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER] =
 		(this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER] ^ this->_gp_registers[(this->_curr_opcode & 0x00F0) >> EXTRACT_Y_REGISTER]);
+	this->_pc += NEXT_INST;
 }
 
 void Core::inst_8XY4()
@@ -388,11 +410,12 @@ void Core::inst_8XY4()
 		this->_gp_registers[CARRY_FLAG] = 0;
 	}
 	this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER] += this->_gp_registers[(this->_curr_opcode & 0x00F0) >> EXTRACT_Y_REGISTER];
+	this->_pc += NEXT_INST;
 }
 
 void Core::inst_8XY5()
 {
-	if ((this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER] - this->_gp_registers[(this->_curr_opcode & 0x00F0) >> EXTRACT_Y_REGISTER]) > 0x00)
+	if ((this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER] > this->_gp_registers[(this->_curr_opcode & 0x00F0) >> EXTRACT_Y_REGISTER]))
 	{
 		this->_gp_registers[CARRY_FLAG] = 1;
 	}
@@ -401,17 +424,19 @@ void Core::inst_8XY5()
 		this->_gp_registers[CARRY_FLAG] = 0;
 	}
 	this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER] -= this->_gp_registers[(this->_curr_opcode & 0x00F0) >> EXTRACT_Y_REGISTER];
+	this->_pc += NEXT_INST;
 }
 
 void Core::inst_8XY6()
 {
 	this->_gp_registers[CARRY_FLAG] = (this->_gp_registers[this->_curr_opcode & 0x0F00] & 0x0F);
 	this->_gp_registers[this->_curr_opcode & 0x0F00] >>= 1;
+	this->_pc += NEXT_INST;
 }
 
 void Core::inst_8XY7()
 {
-	if ((this->_gp_registers[(this->_curr_opcode & 0x00F0) >> EXTRACT_Y_REGISTER] - this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER]) < 0x00)
+	if ((this->_gp_registers[(this->_curr_opcode & 0x00F0) >> EXTRACT_Y_REGISTER] > this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER]))
 	{
 		this->_gp_registers[CARRY_FLAG] = 1;
 	}
@@ -421,12 +446,14 @@ void Core::inst_8XY7()
 	}
 	this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER]
 		= this->_gp_registers[(this->_curr_opcode & 0x00F0) >> EXTRACT_Y_REGISTER] - this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER];
+	this->_pc += NEXT_INST;
 }
 
 void Core::inst_8XYE()
 {
 	this->_gp_registers[CARRY_FLAG] = (this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER] & 0xF0);
 	this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER] <<= 1;
+	this->_pc += NEXT_INST;
 }
 
 void Core::inst_9XY0()
@@ -435,11 +462,13 @@ void Core::inst_9XY0()
 	{
 		this->_pc += NEXT_INST;
 	}
+	this->_pc += NEXT_INST;
 }
 
 void Core::inst_ANNN()
 {
 	this->_index_register = (this->_curr_opcode & 0x0FFF);
+	this->_pc += NEXT_INST;
 }
 
 void Core::inst_BNNN()
@@ -451,6 +480,7 @@ void Core::inst_CXNN()
 {
 	constexpr int GET_RANDOM_NUM = 256;
 	this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER] = ((std::rand() % GET_RANDOM_NUM) & (this->_curr_opcode & 0x00FF));
+	this->_pc += NEXT_INST;
 }
 
 void Core::inst_DXYN()
@@ -465,45 +495,48 @@ void Core::inst_DXYN()
 
 	for (int row = 0; row < height; row++)
 	{
-		pixel = this->_memory[this->_index_register + row];
+		pixel = (this->_memory[this->_index_register + row]);
 		for (int col = 0; col < PIXEL_WIDTH; col++)
 		{
 			if((pixel & (0x80 >> col)) != 0)
 			{
-				if(this->_gfx[x + row][y + col] == 1)
+				if(this->_gfx[(y + row) % Core::GRAPHICS_HEIGHT][(x + col) % Core::GRAPHICS_WIDTH] == 1)
 				{
 					this->_gp_registers[CARRY_FLAG] = 1;
 				}
-				this->_gfx[x + row][y + col] ^= 1;
+				this->_gfx[(y + row) % Core::GRAPHICS_HEIGHT][(x + col) % Core::GRAPHICS_WIDTH] ^= 1;
 			}
 		}
 		
 	}
 
 	this->_draw_flag = true;
-	
+	this->_pc += NEXT_INST;
 }
 
 
 void Core::inst_EX9E()
 {
-	if ((this->_input.get_key_states()).at(((sf::Keyboard::Key)(this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER]))))
+	if ((this->_input.get_key_states().at(this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER])))
 	{
 		this->_pc += NEXT_INST;
 	}
+	this->_pc += NEXT_INST;
 }
 
 void Core::inst_EXA1()
 {
-	if (!((this->_input.get_key_states()).at(((sf::Keyboard::Key)(this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER])))))
+	if (!(this->_input.get_key_states().at(this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER])))
 	{
 		this->_pc += NEXT_INST;
 	}
+	this->_pc += NEXT_INST;
 }
 
 void Core::inst_FX07()
 {
 	this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER] = this->_delay_timer;
+	this->_pc += NEXT_INST;
 }
 
 void Core::inst_FX0A()
@@ -516,36 +549,42 @@ void Core::inst_FX0A()
 			break;
 		}
 	}
+	this->_pc += NEXT_INST;
 }
 
 
 void Core::inst_FX15()
 {
 	this->_delay_timer = this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER];
+	this->_pc += NEXT_INST;
 }
 
 void Core::inst_FX18()
 {
 	this->_sound_timer = this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER];
+	this->_pc += NEXT_INST;
 }
 
 void Core::inst_FX1E()
 {
 	this->_index_register += this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER];
+	this->_pc += NEXT_INST;
 }
 
 void Core::inst_FX29()
 {
 	constexpr int CONVERT_TO_FONT = 5;
 	this->_index_register = this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER] * CONVERT_TO_FONT;
+	this->_pc += NEXT_INST;
 }
 
 void Core::inst_FX33()
 {
 	unsigned char val = this->_gp_registers[(this->_curr_opcode & 0x0F00) >> EXTRACT_X_REGISTER];
-	this->_memory[this->_index_register] = this->dec_to_bcd(val/100);
-	this->_memory[this->_index_register + 1] = this->dec_to_bcd((val/10) % 10);
-	this->_memory[this->_index_register + 2] = this->dec_to_bcd(val% 10);
+	this->_memory[this->_index_register] = val/100;
+	this->_memory[this->_index_register + 1] = ((val/10) % 10);
+	this->_memory[this->_index_register + 2] = (val% 10);
+	this->_pc += NEXT_INST;
 }
 
 
@@ -555,6 +594,7 @@ void Core::inst_FX55()
 	{
 		this->_memory[this->_index_register + offset] = this->_gp_registers[offset];
 	}
+	this->_pc += NEXT_INST;
 }
 
 void Core::inst_FX65()
@@ -563,6 +603,7 @@ void Core::inst_FX65()
 	{
 		this->_gp_registers[offset] = this->_memory[this->_index_register + offset];
 	}
+	this->_pc += NEXT_INST;
 }
 
 
