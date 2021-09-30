@@ -1,5 +1,5 @@
 #include "../include/InputHandler.h"
-#include <iostream>
+
 InputHandler::InputHandler() : _keys_state()
 {
 	this->_keys_state[1] = false; // 1

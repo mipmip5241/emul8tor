@@ -24,7 +24,6 @@ bool Core::emulate_cycle()
 	constexpr int MERGE_OPCODE = 8;
 	this->_draw_flag = false;
 	this->_curr_opcode = this->_memory[this->_pc] << MERGE_OPCODE | this->_memory[this->_pc + 1];
-	std::cout << std::hex << this->_curr_opcode << std::endl;
 	opcode_handler handler = this->_opcode_handlers[(this->_curr_opcode & 0xF000) >> 12];
 	(this->*handler)();
 
@@ -57,7 +56,7 @@ void Core::update_keys()
 
 void Core::draw()
 {
-	if(true)
+	if(this->_draw_flag)
 	{
 		this->_window.clear(sf::Color::Black);
 		for(int i = 0 ; i < Core::GRAPHICS_HEIGHT; i++)
@@ -308,10 +307,6 @@ void Core::inst_00EE()
 		this->_pc = this->_stack[this->_sp];
 		this->_pc += NEXT_INST;
 	}
-	else
-	{
-		std::cout << "00EE error" << std::endl;
-	}
 }
 
 void Core::inst_1NNN()
@@ -326,10 +321,6 @@ void Core::inst_2NNN()
 		this->_stack[this->_sp] = this->_pc;
 		this->_sp++;
 		this->inst_0NNN();
-	}
-	else
-	{
-		std::cout << "2NNN error" << std::endl;
 	}
 }
 
